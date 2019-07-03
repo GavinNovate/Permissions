@@ -23,16 +23,29 @@ object Permissions {
     private val requests by lazy { SparseArray<Pair<Array<String>, (Array<String>, IntArray) -> Unit>>() }
 
     @MainThread
-    fun requestPermissions(activity: FragmentActivity, permissions: Array<String>, callback: (permissions: Array<String>, results: IntArray) -> Unit) {
+    fun requestPermissions(
+        activity: FragmentActivity,
+        permissions: Array<String>,
+        callback: (permissions: Array<String>, results: IntArray) -> Unit
+    ) {
         requestPermissions(activity.lifecycle, activity, permissions, callback)
     }
 
     @MainThread
-    fun requestPermissions(fragment: Fragment, permissions: Array<String>, callback: (permissions: Array<String>, results: IntArray) -> Unit) {
+    fun requestPermissions(
+        fragment: Fragment,
+        permissions: Array<String>,
+        callback: (permissions: Array<String>, results: IntArray) -> Unit
+    ) {
         fragment.activity?.let { requestPermissions(fragment.lifecycle, it, permissions, callback) }
     }
 
-    private fun requestPermissions(lifecycle: Lifecycle, activity: Activity, permissions: Array<String>, callback: (permissions: Array<String>, results: IntArray) -> Unit) {
+    private fun requestPermissions(
+        lifecycle: Lifecycle,
+        activity: Activity,
+        permissions: Array<String>,
+        callback: (permissions: Array<String>, results: IntArray) -> Unit
+    ) {
         lifecycle.addObserver(object : LifecycleObserver {
             private val code = code().also { requests[it] = permissions to callback }
 
@@ -42,7 +55,9 @@ object Permissions {
 
             @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
             fun onDestroy() {
-                requests.remove(code)
+                requests[code]?.also { requests.remove(code) }?.let { (permissions, callback) ->
+                    callback(permissions, IntArray(permissions.size) { PERMISSION_CANCEL })
+                }
             }
         })
     }
@@ -68,16 +83,23 @@ object Permissions {
         }
     }
 
-    private fun code(): Int = Iterable { requests.keyIterator().withIndex() }.firstOrNull { it.index != it.value }?.index ?: requests.size()
+    private fun code(): Int =
+        Iterable { requests.keyIterator().withIndex() }.firstOrNull { it.index != it.value }?.index ?: requests.size()
 }
 
 @MainThread
-fun FragmentActivity.requestPermissions(permissions: Array<String>, callback: (permissions: Array<String>, results: IntArray) -> Unit) {
+fun FragmentActivity.requestPermissions(
+    permissions: Array<String>,
+    callback: (permissions: Array<String>, results: IntArray) -> Unit
+) {
     Permissions.requestPermissions(this, permissions, callback)
 }
 
 @MainThread
-fun Fragment.requestPermissions(permissions: Array<String>, callback: (permissions: Array<String>, results: IntArray) -> Unit) {
+fun Fragment.requestPermissions(
+    permissions: Array<String>,
+    callback: (permissions: Array<String>, results: IntArray) -> Unit
+) {
     Permissions.requestPermissions(this, permissions, callback)
 }
 
