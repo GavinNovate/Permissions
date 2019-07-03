@@ -1,4 +1,6 @@
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
 
 android {
     compileSdkVersion 28
@@ -8,7 +10,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.5"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -25,10 +27,69 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation 'androidx.core:core-ktx:1.0.2'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+}
+
+bintray {
+    user = getLocalProperties('bintray.user')
+    key = getLocalProperties('bintray.key')
+    publications = ['Production']
+    pkg {
+        repo = 'androidx'
+        name = 'permissions'
+        userOrg = 'novate'
+        version {
+            name = android.defaultConfig.versionName
+        }
+    }
+}
+
+publishing {
+    publications {
+        Production(MavenPublication) {
+//            artifact sourcesJar
+//            artifact javadocJar
+//            artifacts {
+//                archives sourcesJar
+//                archives javadocJar
+//            }
+            afterEvaluate {
+                artifact sourcesJar
+//                artifact javadocJar
+            }
+            groupId 'net.novate.androidx'
+            artifactId 'permissions'
+            version android.defaultConfig.versionName
+        }
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+String getLocalProperties(String key) {
+    Properties properties = new Properties()
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    properties.getProperty(key)
 }
