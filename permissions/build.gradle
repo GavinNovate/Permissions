@@ -1,16 +1,17 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray'
+apply plugin: 'org.jetbrains.dokka'
 
 android {
     compileSdkVersion 28
-
 
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0.5"
+        versionName "1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -35,6 +36,48 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 }
 
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    archiveClassifier.set('sources')
+}
+
+task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask) {
+    outputFormat = 'javadoc'
+    outputDirectory = "$buildDir/javadoc"
+}
+
+task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
+    from dokkaJavadoc.outputDirectory
+    archiveClassifier.set('javadoc')
+}
+
+publishing {
+    publications {
+        Production(MavenPublication) {
+            artifact sourcesJar
+            artifact javadocJar
+            artifact("$buildDir/outputs/aar/permissions-release.aar")
+
+            groupId 'net.novate.androidx'
+            artifactId 'permissions'
+            version android.defaultConfig.versionName
+
+            pom.withXml {
+                def dependenciesNode = asNode().appendNode('dependencies')
+
+                configurations.implementation.allDependencies.each {
+                    if (it.name != 'unspecified') {
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', it.group)
+                        dependencyNode.appendNode('artifactId', it.name)
+                        dependencyNode.appendNode('version', it.version)
+                    }
+                }
+            }
+        }
+    }
+}
+
 bintray {
     user = getLocalProperties('bintray.user')
     key = getLocalProperties('bintray.key')
@@ -43,50 +86,19 @@ bintray {
         repo = 'androidx'
         name = 'permissions'
         userOrg = 'novate'
+        licenses = ['Apache-2.0']
+        websiteUrl = 'https://github.com/GavinNovate/Permissions.git'
+        issueTrackerUrl = 'https://github.com/GavinNovate/Permissions/issues'
+        vcsUrl = 'https://github.com/GavinNovate/Permissions.git'
         version {
             name = android.defaultConfig.versionName
+            released = new Date()
+            vcsTag = "v${android.defaultConfig.versionName}"
         }
     }
 }
 
-publishing {
-    publications {
-        Production(MavenPublication) {
-//            artifact sourcesJar
-//            artifact javadocJar
-//            artifacts {
-//                archives sourcesJar
-//                archives javadocJar
-//            }
-            afterEvaluate {
-                artifact sourcesJar
-//                artifact javadocJar
-            }
-            groupId 'net.novate.androidx'
-            artifactId 'permissions'
-            version android.defaultConfig.versionName
-        }
-    }
-}
-
-task sourcesJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier = 'sources'
-}
-
-task javadoc(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
-artifacts {
-    archives sourcesJar
-    archives javadocJar
-}
+bintrayUpload.dependsOn assemble
 
 String getLocalProperties(String key) {
     Properties properties = new Properties()
