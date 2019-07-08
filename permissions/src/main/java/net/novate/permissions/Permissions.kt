@@ -32,12 +32,46 @@ object Permissions {
     }
 
     @MainThread
+    fun requestPermission(
+        activity: FragmentActivity,
+        permission: String,
+        callback: (permission: String, result: Int) -> Unit
+    ) {
+        requestPermissions(activity.lifecycle, activity, arrayOf(permission)) { permissions, results ->
+            callback(permissions.first(), results.first())
+        }
+    }
+
+    @MainThread
     fun requestPermissions(
         fragment: Fragment,
         permissions: Array<String>,
         callback: (permissions: Array<String>, results: IntArray) -> Unit
     ) {
-        fragment.activity?.let { requestPermissions(fragment.lifecycle, it, permissions, callback) }
+        fragment.activity.let {
+            if (it == null) {
+                callback(permissions, IntArray(permissions.size) { PERMISSION_CANCEL })
+            } else {
+                requestPermissions(fragment.lifecycle, it, permissions, callback)
+            }
+        }
+    }
+
+    @MainThread
+    fun requestPermission(
+        fragment: Fragment,
+        permission: String,
+        callback: (permission: String, result: Int) -> Unit
+    ) {
+        fragment.activity.let {
+            if (it == null) {
+                callback(permission, PERMISSION_CANCEL)
+            } else {
+                requestPermissions(fragment.lifecycle, it, arrayOf(permission)) { permissions, results ->
+                    callback(permissions.first(), results.first())
+                }
+            }
+        }
     }
 
     private fun requestPermissions(
@@ -96,11 +130,27 @@ fun FragmentActivity.requestPermissions(
 }
 
 @MainThread
+fun FragmentActivity.requestPermission(
+    permission: String,
+    callback: (permission: String, result: Int) -> Unit
+) {
+    Permissions.requestPermission(this, permission, callback)
+}
+
+@MainThread
 fun Fragment.requestPermissions(
     permissions: Array<String>,
     callback: (permissions: Array<String>, results: IntArray) -> Unit
 ) {
     Permissions.requestPermissions(this, permissions, callback)
+}
+
+@MainThread
+fun Fragment.requestPermission(
+    permission: String,
+    callback: (permission: String, result: Int) -> Unit
+) {
+    Permissions.requestPermission(this, permission, callback)
 }
 
 @MainThread
