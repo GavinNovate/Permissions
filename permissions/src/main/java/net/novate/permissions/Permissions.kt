@@ -1,6 +1,7 @@
 package net.novate.permissions
 
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
 import android.util.SparseArray
 import androidx.annotation.MainThread
@@ -13,72 +14,77 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 
-@Suppress("MemberVisibilityCanBePrivate")
+@Suppress("MemberVisibilityCanBePrivate", "unused")
 object Permissions {
-    const val PERMISSION_GRANTED = 0
-    const val PERMISSION_DENIED = -1
-    const val PERMISSION_IGNORE = -2
-    const val PERMISSION_CANCEL = -3
 
-    private val requests by lazy { SparseArray<Pair<Array<String>, (Array<String>, IntArray) -> Unit>>() }
+    const val GRANTED = PackageManager.PERMISSION_GRANTED
+    const val DENIED = PackageManager.PERMISSION_DENIED
+    const val IGNORE = -2
+    const val CANCEL = -3
 
+    private val requests by lazy { SparseArray<Pair<Array<out String>, (Array<out String>, IntArray) -> Unit>>() }
+
+    @JvmStatic
+    fun hasPermissions(context: Context, vararg permissions: String) =
+        permissions.all { ActivityCompat.checkSelfPermission(context, it) == GRANTED }
+
+    @JvmStatic
+    fun hasPermissions(fragment: Fragment, vararg permissions: String) =
+        permissions.all { ActivityCompat.checkSelfPermission(fragment.requireContext(), it) == GRANTED }
+
+    @JvmStatic
     @MainThread
     fun requestPermissions(
         activity: FragmentActivity,
-        permissions: Array<String>,
-        callback: (permissions: Array<String>, results: IntArray) -> Unit
+        vararg permissions: String,
+        listener: OnRequestPermissionsResultListener
     ) {
-        requestPermissions(activity.lifecycle, activity, permissions, callback)
+        requestPermissions(activity.lifecycle, activity, permissions, listener::onResult)
     }
 
-    @MainThread
-    fun requestPermission(
-        activity: FragmentActivity,
-        permission: String,
-        callback: (permission: String, result: Int) -> Unit
-    ) {
-        requestPermissions(activity.lifecycle, activity, arrayOf(permission)) { permissions, results ->
-            callback(permissions.first(), results.first())
-        }
-    }
-
+    @JvmStatic
     @MainThread
     fun requestPermissions(
         fragment: Fragment,
-        permissions: Array<String>,
-        callback: (permissions: Array<String>, results: IntArray) -> Unit
+        vararg permissions: String,
+        listener: OnRequestPermissionsResultListener
     ) {
-        fragment.activity.let {
-            if (it == null) {
-                callback(permissions, IntArray(permissions.size) { PERMISSION_CANCEL })
-            } else {
-                requestPermissions(fragment.lifecycle, it, permissions, callback)
-            }
-        }
+        requestPermissions(
+            fragment.lifecycle,
+            fragment.requireActivity(),
+            permissions,
+            listener::onResult
+        )
     }
 
+    @JvmStatic
     @MainThread
-    fun requestPermission(
-        fragment: Fragment,
-        permission: String,
-        callback: (permission: String, result: Int) -> Unit
+    fun requestAllManifestPermissions(
+        activity: FragmentActivity,
+        listener: OnRequestPermissionsResultListener
     ) {
-        fragment.activity.let {
-            if (it == null) {
-                callback(permission, PERMISSION_CANCEL)
-            } else {
-                requestPermissions(fragment.lifecycle, it, arrayOf(permission)) { permissions, results ->
-                    callback(permissions.first(), results.first())
-                }
-            }
-        }
+        requestPermissions(activity.lifecycle, activity, activity.allManifestPermissions(), listener::onResult)
     }
 
-    private fun requestPermissions(
+    @JvmStatic
+    @MainThread
+    fun requestAllManifestPermissions(
+        fragment: Fragment,
+        listener: OnRequestPermissionsResultListener
+    ) {
+        requestPermissions(
+            fragment.lifecycle,
+            fragment.requireActivity(),
+            fragment.requireContext().allManifestPermissions(),
+            listener::onResult
+        )
+    }
+
+    internal fun requestPermissions(
         lifecycle: Lifecycle,
         activity: Activity,
-        permissions: Array<String>,
-        callback: (permissions: Array<String>, results: IntArray) -> Unit
+        permissions: Array<out String>,
+        callback: (permissions: Array<out String>, results: IntArray) -> Unit
     ) {
         lifecycle.addObserver(object : LifecycleObserver {
             private val code = code().also { requests[it] = permissions to callback }
@@ -90,28 +96,29 @@ object Permissions {
             @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
             fun onDestroy() {
                 requests[code]?.also { requests.remove(code) }?.let { (permissions, callback) ->
-                    callback(permissions, IntArray(permissions.size) { PERMISSION_CANCEL })
+                    callback(permissions, IntArray(permissions.size) { CANCEL })
                 }
             }
         })
     }
 
+    @JvmStatic
     @MainThread
     fun onRequestPermissionsResult(activity: Activity, requestCode: Int, grantResults: IntArray) {
         requests[requestCode]?.also { requests.remove(requestCode) }?.let { (permissions, callback) ->
             callback(permissions, IntArray(permissions.size) {
                 if (it < grantResults.size) {
                     if (grantResults[it] == PackageManager.PERMISSION_GRANTED) {
-                        PERMISSION_GRANTED
+                        GRANTED
                     } else {
                         if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permissions[it])) {
-                            PERMISSION_DENIED
+                            DENIED
                         } else {
-                            PERMISSION_IGNORE
+                            IGNORE
                         }
                     }
                 } else {
-                    PERMISSION_CANCEL
+                    CANCEL
                 }
             })
         }
@@ -119,41 +126,4 @@ object Permissions {
 
     private fun code(): Int =
         Iterable { requests.keyIterator().withIndex() }.firstOrNull { it.index != it.value }?.index ?: requests.size()
-}
-
-@MainThread
-fun FragmentActivity.requestPermissions(
-    permissions: Array<String>,
-    callback: (permissions: Array<String>, results: IntArray) -> Unit
-) {
-    Permissions.requestPermissions(this, permissions, callback)
-}
-
-@MainThread
-fun FragmentActivity.requestPermission(
-    permission: String,
-    callback: (permission: String, result: Int) -> Unit
-) {
-    Permissions.requestPermission(this, permission, callback)
-}
-
-@MainThread
-fun Fragment.requestPermissions(
-    permissions: Array<String>,
-    callback: (permissions: Array<String>, results: IntArray) -> Unit
-) {
-    Permissions.requestPermissions(this, permissions, callback)
-}
-
-@MainThread
-fun Fragment.requestPermission(
-    permission: String,
-    callback: (permission: String, result: Int) -> Unit
-) {
-    Permissions.requestPermission(this, permission, callback)
-}
-
-@MainThread
-fun FragmentActivity.onRequestPermissionsResult(requestCode: Int, grantResults: IntArray) {
-    Permissions.onRequestPermissionsResult(this, requestCode, grantResults)
 }
