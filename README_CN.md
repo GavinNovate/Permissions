@@ -6,7 +6,7 @@
 ### 添加依赖
 
 ```groovy
-implementation ''
+implementation 'net.novate.androidx:permissions:1.0.0
 ```
 
 ### 接管回调
