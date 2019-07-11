@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Permissions</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="app_name_kotlin">Kotlin</string>
+    <string name="app_name_java">Java</string>
 </resources>
