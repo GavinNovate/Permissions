@@ -1,17 +1,25 @@
 # Permissions
-[![Download](https://api.bintray.com/packages/novate/androidx/permissions/images/download.svg)](https://bintray.com/novate/androidx/permissions/_latestVersion) [![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
+[![Download](https://api.bintray.com/packages/novate/android/permissions/images/download.svg)](https://bintray.com/novate/android/permissions/_latestVersion) [![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
 
 ## 如何使用
 
 ### 添加依赖
 
-```groovy
-implementation 'net.novate.android:permissions:1.0.0'
-```
+- androidx
+
+  ```groovy
+  implementation 'net.novate.androidx:permissions:1.0.0'
+  ```
+
+- android support
+
+  ```groovy
+  implementation 'net.novate.android:permissions:1.0.0'
+  ```
 
 ### 接管回调
 
-在`BaseActivity`或在每个`Activity`中添加如下代码来接管`onRequestPermissionsResult`权限请求的回调。
+在`BaseActivity`或每个`Activity`中添加如下代码来接管`onRequestPermissionsResult`权限请求的回调。
 
 Kotlin
 
