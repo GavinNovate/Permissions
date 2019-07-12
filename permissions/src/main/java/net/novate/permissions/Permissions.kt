@@ -1,18 +1,16 @@
 package net.novate.permissions
 
 import android.app.Activity
+import android.arch.lifecycle.Lifecycle
+import android.arch.lifecycle.LifecycleObserver
+import android.arch.lifecycle.OnLifecycleEvent
 import android.content.Context
 import android.content.pm.PackageManager
+import android.support.annotation.MainThread
+import android.support.v4.app.ActivityCompat
+import android.support.v4.app.Fragment
+import android.support.v4.app.FragmentActivity
 import android.util.SparseArray
-import androidx.annotation.MainThread
-import androidx.core.app.ActivityCompat
-import androidx.core.util.keyIterator
-import androidx.core.util.set
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.OnLifecycleEvent
 
 @Suppress("MemberVisibilityCanBePrivate", "unused")
 object Permissions {
@@ -87,7 +85,7 @@ object Permissions {
         callback: (permissions: Array<out String>, results: IntArray) -> Unit
     ) {
         lifecycle.addObserver(object : LifecycleObserver {
-            private val code = code().also { requests[it] = permissions to callback }
+            private val code = code().also { requests.put(it, permissions to callback) }
 
             init {
                 ActivityCompat.requestPermissions(activity, permissions, code)
@@ -125,5 +123,5 @@ object Permissions {
     }
 
     private fun code(): Int =
-        Iterable { requests.keyIterator().withIndex() }.firstOrNull { it.index != it.value }?.index ?: requests.size()
+        (0 until requests.size()).asIterable().firstOrNull { it != requests.keyAt(it) } ?: requests.size()
 }

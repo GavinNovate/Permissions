@@ -2,10 +2,10 @@ package net.novate.permissions
 
 import android.content.Context
 import android.content.pm.PackageManager
-import androidx.annotation.MainThread
-import androidx.core.app.ActivityCompat
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
+import android.support.annotation.MainThread
+import android.support.v4.app.ActivityCompat
+import android.support.v4.app.Fragment
+import android.support.v4.app.FragmentActivity
 
 fun Context.hasPermissions(vararg permissions: String) =
     permissions.all { ActivityCompat.checkSelfPermission(this, it) == Permissions.GRANTED }

@@ -1,8 +1,8 @@
 package net.novate.demo.permissions;
 
 import android.annotation.SuppressLint;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
+import android.support.annotation.NonNull;
+import android.support.v7.app.AppCompatActivity;
 import net.novate.permissions.Permissions;
 
 @SuppressLint("Registered")
