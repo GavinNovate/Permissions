@@ -5,13 +5,21 @@
 
 ### 添加依赖
 
-```groovy
-implementation 'net.novate.androidx:permissions:1.0.0'
-```
+- androidx
+
+  ```groovy
+  implementation 'net.novate.androidx:permissions:1.0.0'
+  ```
+
+- android support
+
+  ```groovy
+  implementation 'net.novate.android:permissions:1.0.0'
+  ```
 
 ### 接管回调
 
-在`BaseActivity`或在每个`Activity`中添加如下代码来接管`onRequestPermissionsResult`权限请求的回调。
+在`BaseActivity`或每个`Activity`中添加如下代码来接管`onRequestPermissionsResult`权限请求的回调。
 
 Kotlin
 
@@ -155,4 +163,3 @@ Permissions.requestAllManifestPermissions(this,
             }
         });
 ```
-
